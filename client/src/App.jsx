@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "./api.js";
+import { api, clearStoredCsrfToken } from "./api.js";
 import "./styles.css";
 
 const emptyMeeting = () => ({
@@ -1186,6 +1186,7 @@ export default function App() {
     } catch (err) {
       console.warn("Sign out request error:", err);
     } finally {
+      clearStoredCsrfToken();
       setUser(null);
       navigateTo({ name: "dashboard" });
     }

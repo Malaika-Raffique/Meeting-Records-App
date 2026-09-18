@@ -14,11 +14,11 @@ const issueSession = async (user, res) => {
   user.refreshToken = hashToken(refreshToken);
   await user.save({ validateBeforeSave: false });
 
-  setCsrfCookie(res);
+  const csrfToken = setCsrfCookie(res);
   return res
     .cookie("accessToken", accessToken, authCookieOptions)
     .cookie("refreshToken", refreshToken, authCookieOptions)
-    .json({ success: true, data: { user: user.toSafeObject() } });
+    .json({ success: true, data: { user: user.toSafeObject(), csrfToken } });
 };
 
 export const login = asyncHandler(async (req, res) => {
@@ -67,5 +67,11 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  res.json({ success: true, data: { user: req.user.toSafeObject() } });
+  let csrfToken = req.cookies?.csrfToken;
+  if (!csrfToken) {
+    csrfToken = setCsrfCookie(res);
+  } else {
+    res.setHeader("X-CSRF-Token", csrfToken);
+  }
+  res.json({ success: true, data: { user: req.user.toSafeObject(), csrfToken } });
 });

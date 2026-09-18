@@ -1,6 +1,33 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1";
 
 let refreshPromise = null;
+let currentCsrfToken = "";
+
+try {
+  currentCsrfToken = sessionStorage.getItem("csrfToken") || "";
+} catch {
+  // Ignore sessionStorage errors
+}
+
+export function setStoredCsrfToken(token) {
+  if (token && typeof token === "string") {
+    currentCsrfToken = token;
+    try {
+      sessionStorage.setItem("csrfToken", token);
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+export function clearStoredCsrfToken() {
+  currentCsrfToken = "";
+  try {
+    sessionStorage.removeItem("csrfToken");
+  } catch {
+    // Ignore
+  }
+}
 
 const csrfProtectedMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -22,16 +49,23 @@ async function rawFetch(path, options = {}) {
   }
 
   if (csrfProtectedMethods.has(method)) {
-    const csrfToken = getCookie("csrfToken");
+    const csrfToken = currentCsrfToken || getCookie("csrfToken");
     if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
   }
 
-  return fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${API_URL}${path}`, {
     credentials: "include",
     ...options,
     method,
     headers,
   });
+
+  const responseCsrf = response.headers.get("x-csrf-token");
+  if (responseCsrf) {
+    setStoredCsrfToken(responseCsrf);
+  }
+
+  return response;
 }
 
 async function tryRefresh() {
@@ -55,9 +89,22 @@ export async function api(path, options = {}) {
     if (refreshed) {
       response = await rawFetch(path, options);
     }
+  } else if (response.status === 403 && !options._retriedCsrf && path !== "/auth/login") {
+    try {
+      const meRes = await rawFetch("/auth/me");
+      if (meRes.ok) {
+        response = await rawFetch(path, { ...options, _retriedCsrf: true });
+      }
+    } catch {
+      // Ignore retry error and continue
+    }
   }
 
   const result = await response.json().catch(() => ({}));
+  if (result?.data?.csrfToken) {
+    setStoredCsrfToken(result.data.csrfToken);
+  }
+
   if (!response.ok || !result.success) {
     throw new Error(result.message || "Unable to complete that request");
   }

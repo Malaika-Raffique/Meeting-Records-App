@@ -18,10 +18,17 @@ export const csrfCookieOptions = {
 
 export const createCsrfToken = () => crypto.randomBytes(32).toString("hex");
 
-export const setCsrfCookie = (res) => res.cookie("csrfToken", createCsrfToken(), csrfCookieOptions);
+export const setCsrfCookie = (res) => {
+  const token = createCsrfToken();
+  res.cookie("csrfToken", token, csrfCookieOptions);
+  res.setHeader("X-CSRF-Token", token);
+  return token;
+};
 
-export const clearAuthCookies = (res) =>
-  res
+export const clearAuthCookies = (res) => {
+  res.removeHeader("X-CSRF-Token");
+  return res
     .clearCookie("accessToken", authCookieOptions)
     .clearCookie("refreshToken", authCookieOptions)
     .clearCookie("csrfToken", csrfCookieOptions);
+};

@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { ApiError } from "../utils/ApiError.js";
 
+import { setCsrfCookie } from "../utils/authCookies.js";
+
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfExemptRoutes = new Set(["/api/v1/auth/login", "/api/v1/auth/logout"]);
 
@@ -13,11 +15,21 @@ const sameToken = (left, right) => {
 };
 
 export const requireCsrfToken = (req, res, next) => {
-  if (safeMethods.has(req.method) || csrfExemptRoutes.has(req.originalUrl.split("?")[0])) {
+  let cookieToken = req.cookies?.csrfToken;
+
+  if (safeMethods.has(req.method)) {
+    if (!cookieToken) {
+      setCsrfCookie(res);
+    } else {
+      res.setHeader("X-CSRF-Token", cookieToken);
+    }
     return next();
   }
 
-  const cookieToken = req.cookies?.csrfToken;
+  if (csrfExemptRoutes.has(req.originalUrl.split("?")[0])) {
+    return next();
+  }
+
   const headerToken = req.get("x-csrf-token");
 
   if (!sameToken(cookieToken, headerToken)) {
