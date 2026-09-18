@@ -19,8 +19,8 @@ function showStartupError(error) {
   );
 }
 
-window.addEventListener("error", (event) => showStartupError(event.error || event.message));
-window.addEventListener("unhandledrejection", (event) => showStartupError(event.reason));
+window.addEventListener("error", (event) => console.error("Application error:", event.error || event.message));
+window.addEventListener("unhandledrejection", (event) => console.warn("Unhandled promise rejection:", event.reason));
 
 import("./App.jsx")
   .then(({ default: App }) => {

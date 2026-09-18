@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { ApiError } from "../utils/ApiError.js";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
-const csrfExemptRoutes = new Set(["/api/v1/auth/login"]);
+const csrfExemptRoutes = new Set(["/api/v1/auth/login", "/api/v1/auth/logout"]);
 
 const sameToken = (left, right) => {
   if (!left || !right) return false;

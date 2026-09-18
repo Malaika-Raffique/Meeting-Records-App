@@ -1181,7 +1181,14 @@ export default function App() {
   }
 
   async function logout() {
-    try { await api("/auth/logout", { method: "POST" }); } finally { setUser(null); navigateTo({ name: "dashboard" }); }
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.warn("Sign out request error:", err);
+    } finally {
+      setUser(null);
+      navigateTo({ name: "dashboard" });
+    }
   }
 
   const content = useMemo(() => {
